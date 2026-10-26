@@ -1,0 +1,17 @@
+{
+  "title": "Halloween Movie Night",
+  "movies": [
+    { "title": "Halloween", "year": 1978, "genre": "Slasher", "note": "The Shape is back in Haddonfield." },
+    { "title": "The Thing", "year": 1982, "genre": "Sci-Fi Horror", "note": "Trust no one at the Antarctic base." },
+    { "title": "Hereditary", "year": 2018, "genre": "Psychological Horror", "note": "A family’s grief opens something worse." },
+    { "title": "The Shining", "year": 1980, "genre": "Psychological Horror", "note": "Room 237 is not for tourists." },
+    { "title": "Scream", "year": 1996, "genre": "Slasher", "note": "Know the rules. Pick up the phone." },
+    { "title": "A Nightmare on Elm Street", "year": 1984, "genre": "Supernatural", "note": "Do not fall asleep." },
+    { "title": "The Conjuring", "year": 2013, "genre": "Supernatural", "note": "The Perron farmhouse has company." },
+    { "title": "Alien", "year": 1979, "genre": "Sci-Fi Horror", "note": "In space, no one can hear you scream." },
+    { "title": "Sinister", "year": 2012, "genre": "Supernatural", "note": "Never watch the home movies." },
+    { "title": "Get Out", "year": 2017, "genre": "Thriller", "note": "Meeting the parents goes very wrong." },
+    { "title": "The Exorcist", "year": 1973, "genre": "Possession", "note": "The one that started it all." },
+    { "title": "It Follows", "year": 2014, "genre": "Supernatural", "note": "It never stops walking toward you." }
+  ]
+}

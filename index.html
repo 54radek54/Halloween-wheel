@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fright Night Wheel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap">
+<style>
+:root{
+  --void:#08050f; --panel:rgba(18,10,32,.72); --blood:#ff2d4a; --uv:#8a3dff; --bone:#efe6d2; --moon:#b9c4ff; --dim:#8d84a6;
+  color-scheme:dark; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0;background:var(--void);color:var(--bone);font-family:"Chakra Petch",system-ui,sans-serif;overflow:hidden}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.scan{position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}
+.vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.75) 100%)}
+.ui{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(18px + env(safe-area-inset-bottom,0px));pointer-events:none}
+header{text-align:center}
+h1{margin:0;font-size:clamp(26px,6vw,48px);font-weight:700;letter-spacing:.14em;text-shadow:0 0 18px rgba(255,45,74,.7),0 0 40px rgba(138,61,255,.5)}
+.sub{margin:6px 0 0;color:var(--dim);font-size:14px;letter-spacing:.06em}
+.dock{display:flex;flex-direction:column;align-items:center;gap:12px}
+button{pointer-events:auto;font:inherit;cursor:pointer;color:var(--bone)}
+.spin{position:relative;padding:16px 46px;font-size:20px;font-weight:700;letter-spacing:.2em;background:linear-gradient(135deg,rgba(255,45,74,.9),rgba(138,61,255,.9));border:0;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);box-shadow:0 0 30px rgba(255,45,74,.5);transition:transform .15s,filter .15s}
+.spin:hover{filter:brightness(1.2);transform:scale(1.03)}
+.spin:disabled{filter:grayscale(.8) brightness(.6);cursor:not-allowed;transform:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.ghost{background:var(--panel);border:1px solid rgba(185,196,255,.35);padding:9px 16px;font-size:14px;backdrop-filter:blur(6px)}
+.ghost:hover{border-color:var(--blood)}
+button:focus-visible{outline:2px solid var(--moon);outline-offset:3px}
+.count{color:var(--dim);font-size:14px}
+.hint{color:var(--dim);font-size:12px;text-align:center;max-width:440px;min-height:1em}
+.hint.err{color:var(--blood)}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,2,10,.72);backdrop-filter:blur(5px);padding:20px;z-index:5}
+.modal.open{display:flex}
+.card{position:relative;width:min(480px,100%);padding:30px 26px 24px;text-align:center;background:var(--panel);border:1px solid var(--blood);box-shadow:0 0 60px rgba(255,45,74,.35),inset 0 0 40px rgba(138,61,255,.15);animation:rise .45s cubic-bezier(.2,1.3,.4,1)}
+.card::before,.card::after{content:"";position:absolute;width:22px;height:22px;border:2px solid var(--moon)}
+.card::before{top:-2px;left:-2px;border-right:0;border-bottom:0}
+.card::after{bottom:-2px;right:-2px;border-left:0;border-top:0}
+@keyframes rise{from{transform:scale(.7) translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.fate{margin:0 0 10px;color:var(--blood);font-size:15px;letter-spacing:.12em}
+.card h2{margin:0;font-size:clamp(28px,7vw,40px);line-height:1.1;text-shadow:0 0 22px rgba(255,45,74,.6)}
+.meta{margin:12px 0 0;color:var(--moon);font-size:15px}
+.note{margin:14px auto 0;max-width:36ch;color:var(--bone);opacity:.85;line-height:1.5}
+.card .row{margin-top:24px}
+@media (prefers-reduced-motion:reduce){.card{animation:none}.spin{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="scan"></div><div class="vig"></div>
+
+<div class="ui">
+  <header>
+    <h1 id="ttl">Halloween Movie Night</h1>
+    <p class="sub">Spin the wheel. Face your fate.</p>
+  </header>
+  <div class="dock">
+    <button class="spin" id="spin">SPIN</button>
+    <div class="row">
+      <button class="ghost" id="load">Load movies.json</button>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="hint" id="hint"></div>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
+  <div class="card">
+    <p class="fate">Your fate is sealed</p>
+    <h2 id="mt"></h2>
+    <p class="meta" id="mm"></p>
+    <p class="note" id="mn"></p>
+    <div class="row">
+      <button class="ghost" id="watch">Watch it</button>
+      <button class="ghost" id="remove">Remove from wheel</button>
+      <button class="ghost" id="again">Spin again</button>
+    </div>
+  </div>
+</div>
+
+<!-- Default list. Replace it here, or load your own JSON file with the button. -->
+<script type="application/json" id="movies-data">
+{
+  "title": "Halloween Movie Night",
+  "movies": [
+    { "title": "Halloween", "year": 1978, "genre": "Slasher", "note": "The Shape is back in Haddonfield." },
+    { "title": "The Thing", "year": 1982, "genre": "Sci-Fi Horror", "note": "Trust no one at the Antarctic base." },
+    { "title": "Hereditary", "year": 2018, "genre": "Psychological Horror", "note": "A family’s grief opens something worse." },
+    { "title": "The Shining", "year": 1980, "genre": "Psychological Horror", "note": "Room 237 is not for tourists." },
+    { "title": "Scream", "year": 1996, "genre": "Slasher", "note": "Know the rules. Pick up the phone." },
+    { "title": "A Nightmare on Elm Street", "year": 1984, "genre": "Supernatural", "note": "Do not fall asleep." },
+    { "title": "The Conjuring", "year": 2013, "genre": "Supernatural", "note": "The Perron farmhouse has company." },
+    { "title": "Alien", "year": 1979, "genre": "Sci-Fi Horror", "note": "In space, no one can hear you scream." },
+    { "title": "Sinister", "year": 2012, "genre": "Supernatural", "note": "Never watch the home movies." },
+    { "title": "Get Out", "year": 2017, "genre": "Thriller", "note": "Meeting the parents goes very wrong." },
+    { "title": "The Exorcist", "year": 1973, "genre": "Possession", "note": "The one that started it all." },
+    { "title": "It Follows", "year": 2014, "genre": "Supernatural", "note": "It never stops walking toward you." }
+  ]
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+let movies=[], spinning=false, winner=-1;
+
+/* ---------- data ---------- */
+function normalize(d){
+  const arr=Array.isArray(d)?d:(d&&d.movies);
+  if(!Array.isArray(arr)) throw new Error('JSON needs a "movies" array.');
+  const out=arr.map(m=>typeof m==='string'?{title:m}:m).filter(m=>m&&typeof m.title==='string'&&m.title.trim());
+  if(!out.length) throw new Error('No movies with a "title" found.');
+  return {title:(d&&d.title)||null,movies:out};
+}
+function setData(d){
+  const n=normalize(d);
+  movies=n.movies.slice();
+  if(n.title) $('ttl').textContent=n.title;
+  refresh();
+}
+function hint(msg,err){const h=$('hint');h.textContent=msg||'';h.className='hint'+(err?' err':'')}
+function refresh(){
+  $('count').textContent=movies.length+(movies.length===1?' title':' titles')+' on the wheel';
+  $('spin').disabled=spinning||movies.length<1;
+  drawWheel();
+}
+
+/* ---------- wheel texture ---------- */
+const tex=document.createElement('canvas'); tex.width=tex.height=1024;
+const ctx=tex.getContext('2d');
+const PAL=[[345,90,16],[268,70,18],[355,80,13],[250,60,14]];
+function drawWheel(){
+  const S=1024,C=S/2,R=C-6,n=movies.length;
+  ctx.clearRect(0,0,S,S);
+  if(!n){
+    ctx.fillStyle='#14091f';ctx.beginPath();ctx.arc(C,C,R,0,7);ctx.fill();
+    ctx.fillStyle='#efe6d2';ctx.font='700 46px "Chakra Petch",sans-serif';ctx.textAlign='center';
+    ctx.fillText('The wheel is empty',C,C-10);ctx.font='400 32px "Chakra Petch",sans-serif';ctx.fillText('Load a movies.json file',C,C+40);
+  } else {
+    const a=Math.PI*2/n;
+    for(let i=0;i<n;i++){
+      const s=-Math.PI/2+i*a, p=PAL[i%PAL.length];
+      const g=ctx.createRadialGradient(C,C,40,C,C,R);
+      g.addColorStop(0,`hsl(${p[0]} ${p[1]}% ${p[2]+10}%)`);g.addColorStop(1,`hsl(${p[0]} ${p[1]}% ${p[2]}%)`);
+      ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(C,C);ctx.arc(C,C,R,s,s+a);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='rgba(185,196,255,.55)';ctx.lineWidth=3;ctx.stroke();
+    }
+    const fs=n>28?24:n>18?30:n>10?36:44;
+    ctx.font=`600 ${fs}px "Chakra Petch",sans-serif`;ctx.textBaseline='middle';ctx.textAlign='right';
+    for(let i=0;i<n;i++){
+      let t=movies[i].title;const max=R-150;
+      while(ctx.measureText(t).width>max&&t.length>3)t=t.slice(0,-2);
+      if(t!==movies[i].title)t=t.trimEnd()+'…';
+      ctx.save();ctx.translate(C,C);ctx.rotate(-Math.PI/2+(i+.5)*a);
+      ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillStyle='#efe6d2';ctx.fillText(t,R-36,0);ctx.restore();
+    }
+  }
+  ctx.strokeStyle='#ff2d4a';ctx.lineWidth=6;ctx.beginPath();ctx.arc(C,C,R,0,7);ctx.stroke();
+  if(window.wheelTex) window.wheelTex.needsUpdate=true;
+}
+
+/* ---------- 3D scene ---------- */
+const cv=$('gl');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x08050f);
+scene.fog=new THREE.FogExp2(0x120826,.045);
+const cam=new THREE.PerspectiveCamera(45,1,.1,100);
+
+scene.add(new THREE.AmbientLight(0x5a4a8a,.9));
+const redL=new THREE.PointLight(0xff2d4a,2.2,30);redL.position.set(-4,3,6);scene.add(redL);
+const uvL=new THREE.PointLight(0x8a3dff,2,30);uvL.position.set(5,-2,6);scene.add(uvL);
+
+// moon
+const moon=new THREE.Mesh(new THREE.SphereGeometry(3.2,48,48),new THREE.MeshBasicMaterial({color:0xb9c4ff,fog:false}));
+moon.position.set(-5.5,6,-18);scene.add(moon);
+const halo=new THREE.Mesh(new THREE.SphereGeometry(4.6,32,32),new THREE.MeshBasicMaterial({color:0x8a3dff,transparent:true,opacity:.18,fog:false}));
+halo.position.copy(moon.position);scene.add(halo);
+
+// wheel
+const rig=new THREE.Group();scene.add(rig);
+rig.rotation.x=-.38;
+const wheelTex=new THREE.CanvasTexture(tex);wheelTex.anisotropy=8;window.wheelTex=wheelTex;
+const R3=3;
+const face=new THREE.Mesh(new THREE.CircleGeometry(R3,96),new THREE.MeshBasicMaterial({map:wheelTex}));
+face.position.z=.16;
+const disc=new THREE.Group();disc.add(face);rig.add(disc);
+const body=new THREE.Mesh(new THREE.CylinderGeometry(R3+.05,R3+.05,.3,96).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:0x1a0f2c,metalness:.8,roughness:.35}));
+disc.add(body);
+const rim=new THREE.Mesh(new THREE.TorusGeometry(R3+.08,.13,16,120),new THREE.MeshStandardMaterial({color:0x2a1840,metalness:.9,roughness:.25,emissive:0xff2d4a,emissiveIntensity:.5}));
+rim.position.z=.1;disc.add(rim);
+const spikeGeo=new THREE.ConeGeometry(.11,.5,6),spikeMat=new THREE.MeshStandardMaterial({color:0xefe6d2,metalness:.3,roughness:.5,emissive:0x8a3dff,emissiveIntensity:.35});
+for(let i=0;i<36;i++){
+  const t=i/36*Math.PI*2,sp=new THREE.Mesh(spikeGeo,spikeMat);
+  sp.position.set(Math.cos(t)*(R3+.3),Math.sin(t)*(R3+.3),.1);sp.rotation.z=t-Math.PI/2;disc.add(sp);
+}
+const hub=new THREE.Mesh(new THREE.SphereGeometry(.38,32,32),new THREE.MeshStandardMaterial({color:0x14091f,metalness:.9,roughness:.2,emissive:0xff2d4a,emissiveIntensity:.9}));
+hub.position.z=.3;disc.add(hub);
+// pointer (fixed on rig, points down at the wheel)
+const ptr=new THREE.Mesh(new THREE.ConeGeometry(.3,.85,4),new THREE.MeshStandardMaterial({color:0xff2d4a,emissive:0xff2d4a,emissiveIntensity:1.1,metalness:.4,roughness:.3}));
+ptr.rotation.z=Math.PI;ptr.position.set(0,R3+.35,.4);rig.add(ptr);
+
+// embers
+const EN=420,ep=new Float32Array(EN*3),ev=new Float32Array(EN);
+for(let i=0;i<EN;i++){ep[i*3]=(Math.random()-.5)*26;ep[i*3+1]=(Math.random()-.5)*16;ep[i*3+2]=-10+Math.random()*14;ev[i]=.2+Math.random()*.6}
+const eg=new THREE.BufferGeometry();eg.setAttribute('position',new THREE.BufferAttribute(ep,3));
+const embers=new THREE.Points(eg,new THREE.PointsMaterial({color:0xff6a3d,size:.07,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending}));
+scene.add(embers);
+
+// floating wire spirits
+const spirits=[];
+for(let i=0;i<5;i++){
+  const m=new THREE.Mesh(new THREE.IcosahedronGeometry(.5+Math.random()*.4,1),new THREE.MeshBasicMaterial({color:i%2?0x8a3dff:0xff2d4a,wireframe:true,transparent:true,opacity:.5}));
+  m.position.set((Math.random()-.5)*16,(Math.random()-.5)*9,-5-Math.random()*5);m.userData.s=.2+Math.random()*.4;scene.add(m);spirits.push(m);
+}
+
+function resize(){
+  const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;
+  const d=Math.max(9.5,9.6/cam.aspect);cam.position.set(0,.4,d);cam.lookAt(0,.2,0);cam.updateProjectionMatrix();
+}
+addEventListener('resize',resize);resize();
+
+/* ---------- spin ---------- */
+let rot=0, anim=null;
+const TAU=Math.PI*2, ease=t=>1-Math.pow(1-t,4);
+function spin(){
+  if(spinning||!movies.length)return;
+  spinning=true;$('spin').disabled=true;hint('');
+  const n=movies.length,a=TAU/n,idx=Math.floor(Math.random()*n);
+  const target=(idx+.12+Math.random()*.76)*a;
+  const delta=(((target-rot)%TAU)+TAU)%TAU+TAU*(6+Math.floor(Math.random()*3));
+  anim={from:rot,delta,t0:performance.now(),dur:6200,idx};
+}
+function finish(idx){
+  spinning=false;winner=idx;const m=movies[idx];
+  $('mt').textContent=m.title;
+  $('mm').textContent=[m.year,m.genre].filter(Boolean).join('  |  ');
+  $('mn').textContent=m.note||'';
+  $('modal').classList.add('open');$('watch').focus();
+  $('spin').disabled=false;
+}
+$('spin').onclick=spin;
+$('again').onclick=()=>{$('modal').classList.remove('open');spin()};
+$('watch').onclick=()=>$('modal').classList.remove('open');
+$('remove').onclick=()=>{
+  if(winner>=0){movies.splice(winner,1);winner=-1}
+  $('modal').classList.remove('open');refresh();
+};
+addEventListener('keydown',e=>{if(e.key==='Escape')$('modal').classList.remove('open')});
+
+/* ---------- loop ---------- */
+const clock=new THREE.Clock();
+function frame(){
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  if(anim){
+    const k=Math.min((performance.now()-anim.t0)/anim.dur,1);
+    rot=anim.from+anim.delta*ease(k);
+    if(k>=1){rot%=TAU;const i=anim.idx;anim=null;finish(i)}
+  } else if(!spinning){ rot+=dt*.05 }
+  disc.rotation.z=rot;
+  hub.material.emissiveIntensity=.7+Math.sin(t*3)*.3;
+  rig.position.y=Math.sin(t*.8)*.08;
+  redL.intensity=2+Math.sin(t*7)*.25+(Math.random()>.97?1.2:0);
+  halo.scale.setScalar(1+Math.sin(t*.5)*.04);
+  const p=eg.attributes.position.array;
+  for(let i=0;i<EN;i++){p[i*3+1]+=ev[i]*dt;p[i*3]+=Math.sin(t+i)*.002;if(p[i*3+1]>8)p[i*3+1]=-8}
+  eg.attributes.position.needsUpdate=true;
+  spirits.forEach((s,i)=>{s.rotation.x+=dt*s.userData.s;s.rotation.y+=dt*s.userData.s*.7;s.position.y+=Math.sin(t*.6+i)*.003});
+  renderer.render(scene,cam);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- loading JSON ---------- */
+function readFile(f){
+  if(!f)return;
+  f.text().then(s=>{setData(JSON.parse(s));hint('Loaded '+f.name)}).catch(e=>hint('Could not load file: '+e.message,true));
+}
+$('load').onclick=()=>$('file').click();
+$('file').onchange=e=>{readFile(e.target.files[0]);e.target.value=''};
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();readFile(e.dataTransfer.files[0])});
+
+/* ---------- boot ---------- */
+setData(JSON.parse($('movies-data').textContent));
+frame();
+// If hosted next to a movies.json file, it is picked up automatically.
+fetch('movies.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(d=>{setData(d);hint('Loaded movies.json')}).catch(()=>{});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawWheel);
+})();
+</script>
+</body>
+</html>
